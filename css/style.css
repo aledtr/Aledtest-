@@ -107,9 +107,46 @@ kbd {
   background: #000; border: 1px solid var(--line); border-bottom-width: 2px;
   border-radius: 5px; padding: 1px 7px; font-size: 12px; margin: 0 1px; font-family: monospace;
 }
-.pill { padding: 1px 8px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.pill { padding: 1px 8px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .pill-fuel { background: var(--accent); color:#1a1100; }
+.pill-mains { background:#ffcf2b; color:#1a1100; }
+.pill-batt { background:#8fd14f; color:#0e1a07; }
+.pill-petrol { background:#ff8a00; color:#1a1100; }
+.pill-robot { background:#36c0ff; color:#04212e; }
+.howto-list ul { margin: 8px 0; }
 .muted { color: var(--muted); }
+
+/* ---------- Garage upgrades bar ---------- */
+.garage-upgrades { width:100%; max-width:1000px; margin-bottom:14px; }
+.upgrade-card {
+  display:flex; align-items:center; gap:14px;
+  background: linear-gradient(180deg,#1b1b1e,#141414);
+  border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:12px; padding:12px 16px;
+}
+.upgrade-card.owned { border-left-color: var(--good); }
+.upgrade-icon { font-size:26px; }
+.upgrade-body { flex:1; }
+.upgrade-name { font-weight:800; font-size:15px; }
+.upgrade-desc { font-size:12px; color:var(--muted); line-height:1.4; }
+.owned-tag { color:var(--good); font-weight:800; font-size:14px; }
+
+/* ---------- Mower card extras ---------- */
+.mower-diff { font-size:11px; font-weight:700; color:#cdd2d8; letter-spacing:.02em; }
+.mower-spec {
+  font-size:11px; color:var(--muted); font-family: ui-monospace, monospace;
+  background:#0c0c0d; border:1px solid var(--line); border-radius:6px;
+  padding:5px 7px; line-height:1.35; min-height:30px;
+}
+.mower-thumb { position:relative; }
+.thumb-tag {
+  position:absolute; top:6px; right:6px; font-size:9px; font-weight:800;
+  letter-spacing:.08em; padding:2px 6px; border-radius:10px; color:#000;
+}
+.tag-corded { background:#ffcf2b; }
+.tag-battery { background:#8fd14f; }
+.tag-petrol { background:#ff8a00; }
+.tag-robot { background:#36c0ff; }
 
 /* ---------- Garage ---------- */
 #screen-garage { justify-content: flex-start; padding-top: 28px; }

@@ -58,9 +58,18 @@
           <li><b>Goal:</b> Cut the required percentage of grass on each lawn before you run out of fuel/battery or time.</li>
           <li><b>Move:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the <kbd>Arrow</kbd> keys. On touch devices, use the on-screen pad.</li>
           <li><b>Cut:</b> Just drive over uncut grass. Wider decks cut more in one pass.</li>
-          <li><b>Energy:</b> Petrol mowers burn fuel; cordless mowers drain a battery. Drive over the <span class="pill pill-fuel">refuel pad</span> to top up.</li>
-          <li><b>Avoid:</b> Trees, ponds, flowerbeds and gnomes. Hitting an obstacle stalls you and dents your tidiness bonus.</li>
-          <li><b>Earn:</b> Finish lawns to earn £. Spend it in the Garage to unlock faster, wider, longer-lasting Hyundai machines.</li>
+          <li><b>Each machine plays differently — its real spec is the difficulty:</b>
+            <ul>
+              <li><span class="pill pill-mains">MAINS</span> <b>Corded</b> mowers never run out of power, but the lead only reaches so far. Stay within reach of your <b>wall socket</b> — when the cable goes <b>taut</b> you can't go further. Drive onto another socket to <b>re-plug</b>, or fit the <span class="pill pill-mains">🔌 Extension Cable</span> in the Garage to reach further.</li>
+              <li><span class="pill pill-batt">BATTERY</span> <b>Cordless</b> mowers roam free, but the charge is limited — top up on a <span class="pill pill-fuel">⚡ charge pad</span>.</li>
+              <li><span class="pill pill-petrol">PETROL</span> mowers are the most powerful and wide, but burn fuel — visit the <span class="pill pill-fuel">⛽ refuel pad</span>.</li>
+              <li><span class="pill pill-robot">ROBOT</span> the HYRM1000 self-charges and never stops, but its 18cm deck is tiny — coverage is the challenge.</li>
+            </ul>
+          </li>
+          <li><b>Coins &amp; power-ups:</b> grab the £ coins and the floating crates (⚡ Turbo, ↔ Wide Cut, ⛽ Fuel, £ Cash).</li>
+          <li><b>Combo:</b> keep cutting without stopping to build a multiplier up to <b>x5</b> — big points.</li>
+          <li><b>Avoid:</b> trees, ponds, hedges, rocks, gnomes — and roaming dogs &amp; geese. Bumping anything stalls you and breaks your combo.</li>
+          <li><b>Stars &amp; earnings:</b> earn up to ⭐⭐⭐ per lawn (finish / clean run / coins) and bank £ to unlock the full Hyundai range in the Garage.</li>
         </ul>
         <button class="btn btn-primary" data-action="back-menu">Back</button>
       </div>
@@ -72,6 +81,7 @@
         <h2>The Garage <span class="muted">— Hyundai Black Range</span></h2>
         <div class="wallet-line">Wallet: <span id="garage-wallet">£0</span></div>
       </div>
+      <div id="garage-upgrades" class="garage-upgrades"></div>
       <div id="mower-grid" class="mower-grid"></div>
       <div class="garage-foot">
         <button class="btn" data-action="back-menu">Back</button>

@@ -1,23 +1,24 @@
 /* ============================================================
    game.js — Hyundai Mow Master main controller
    Handles: screen routing, save state, garage/shop, records,
-   and the canvas gameplay loop (movement, mowing, coins,
-   power-ups, hazards, combos, scoring, collisions, energy).
+   and the canvas gameplay loop. Each machine's real spec drives
+   its difficulty — most notably the CORDED cable-reach mechanic.
    ============================================================ */
 (function () {
   "use strict";
 
-  const CELL = 30;            // px per grass cell
-  const SAVE_KEY = "hyundai_mow_master_save_v2";
-  const COIN_VALUE = 5;       // £ per coin
-  const MAX_COMBO = 5;        // multiplier cap
-  const LB_SIZE = 10;         // leaderboard length
+  const CELL = 30;
+  const SAVE_KEY = "hyundai_mow_master_save_v3";
+  const COIN_VALUE = 5;
+  const MAX_COMBO = 5;
+  const LB_SIZE = 10;
 
   /* ---------------- Persistent state ---------------- */
   const defaultState = () => ({
     wallet: 0,
-    owned: ["hym3200e"],
-    selected: "hym3200e",
+    owned: ["hym3300e"],
+    selected: "hym3300e",
+    hasExtension: false,
     levelReached: 0,
     bestTimes: {},
     levelStars: {},
@@ -58,16 +59,13 @@
     s = Math.max(0, Math.floor(s));
     return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   }
-  function starStr(n) {
-    let out = "";
-    for (let i = 0; i < 3; i++) out += i < n ? "★" : "☆";
-    return out;
-  }
 
   function refreshWallets() {
     $("#menu-wallet").textContent = fmtMoney(state.wallet);
     $("#garage-wallet").textContent = fmtMoney(state.wallet);
   }
+
+  const unlimited = (m) => MOWERS.unlimited(m);
 
   /* ---------------- sound toggle ---------------- */
   const soundBtn = $("#sound-toggle");
@@ -78,9 +76,7 @@
   }
   soundBtn.addEventListener("click", () => {
     state.muted = !state.muted;
-    Sound.resume();
-    applyMute();
-    saveState();
+    Sound.resume(); applyMute(); saveState();
     if (!state.muted) Sound.ui();
   });
 
@@ -88,6 +84,7 @@
      GARAGE
      ============================================================ */
   function renderGarage() {
+    renderUpgrades();
     const grid = $("#mower-grid");
     grid.innerHTML = "";
     MOWERS.forEach(m => {
@@ -98,15 +95,17 @@
       const card = document.createElement("div");
       card.className = "mower-card" + (selected ? " selected" : "") + (owned ? "" : " locked");
       card.innerHTML = `
-        <div class="mower-thumb">${mowerThumbSVG(m)}</div>
+        <div class="mower-thumb">${mowerThumbSVG(m)}<span class="thumb-tag tag-${m.power}">${powerLabel(m)}</span></div>
         <div>
           <div class="mower-class">${m.class}</div>
           <div class="mower-name">${m.name}</div>
         </div>
+        <div class="mower-diff">⚙ ${m.difficulty}</div>
         <div class="mower-desc">${m.desc}</div>
+        <div class="mower-spec">${m.spec}</div>
         ${statRow("Speed", bars.speed)}
         ${statRow("Cut", bars.width)}
-        ${statRow("Runtime", bars.runtime)}
+        ${statRow(m.corded ? "Reach" : "Runtime", bars.runtime)}
         ${statRow("Handling", bars.handling)}
         <div class="mower-foot"></div>`;
       const foot = card.querySelector(".mower-foot");
@@ -134,6 +133,41 @@
     refreshWallets();
   }
 
+  function powerLabel(m) {
+    return { corded: "MAINS", battery: "BATTERY", petrol: "PETROL", robot: "ROBOT" }[m.power] || "";
+  }
+
+  function renderUpgrades() {
+    const box = $("#garage-upgrades");
+    if (!box) return;
+    const ext = MOWERS.EXTENSION;
+    const owned = state.hasExtension;
+    box.innerHTML = `
+      <div class="upgrade-card ${owned ? "owned" : ""}">
+        <div class="upgrade-icon">🔌</div>
+        <div class="upgrade-body">
+          <div class="upgrade-name">Extension Cable <span class="muted">(+${ext.reach} cells reach)</span></div>
+          <div class="upgrade-desc">Fits every corded mower — reach further from each wall socket, so you re-plug far less often.</div>
+        </div>
+        <div class="upgrade-foot"></div>
+      </div>`;
+    const foot = box.querySelector(".upgrade-foot");
+    if (owned) {
+      const t = document.createElement("span"); t.className = "owned-tag"; t.textContent = "✓ Fitted";
+      foot.appendChild(t);
+    } else {
+      const b = document.createElement("button");
+      const ok = state.wallet >= ext.price;
+      b.className = "btn " + (ok ? "btn-primary" : ""); b.disabled = !ok;
+      b.innerHTML = `Buy · <span class="price-tag">${fmtMoney(ext.price)}</span>`;
+      b.onclick = () => {
+        if (state.wallet < ext.price) { Sound.deny(); return; }
+        state.wallet -= ext.price; state.hasExtension = true; Sound.buy(); saveState(); renderGarage();
+      };
+      foot.appendChild(b);
+    }
+  }
+
   function statRow(name, v) {
     return `<div class="stat-row"><span class="stat-name">${name}</span>
       <span class="stat-track"><span class="stat-bar" style="width:${Math.round(v*100)}%"></span></span></div>`;
@@ -144,22 +178,21 @@
     state.wallet -= m.price;
     state.owned.push(m.id);
     state.selected = m.id;
-    Sound.buy();
-    saveState();
-    renderGarage();
+    Sound.buy(); saveState(); renderGarage();
   }
 
   function mowerThumbSVG(m) {
+    const w = Math.max(2, m.cutWidth);
     return `<svg viewBox="0 0 120 92" width="100%" height="100%">
       <rect width="120" height="92" fill="#000"/>
       <g transform="translate(60,46)">
-        <rect x="${-m.cutWidth*5-6}" y="-20" width="${m.cutWidth*10+12}" height="40" rx="6" fill="${m.color}" stroke="${m.accent}" stroke-width="2"/>
-        <rect x="${-m.cutWidth*5-2}" y="14" width="${m.cutWidth*10+4}" height="6" rx="3" fill="${m.accent}"/>
-        <circle cx="${-m.cutWidth*5}" cy="-20" r="6" fill="#222" stroke="#444"/>
-        <circle cx="${m.cutWidth*5}" cy="-20" r="6" fill="#222" stroke="#444"/>
-        <circle cx="${-m.cutWidth*5}" cy="20" r="7" fill="#222" stroke="#444"/>
-        <circle cx="${m.cutWidth*5}" cy="20" r="7" fill="#222" stroke="#444"/>
-        ${m.rider ? '<rect x="-7" y="-8" width="14" height="16" rx="3" fill="#333"/>' : ''}
+        <rect x="${-w*5-6}" y="-20" width="${w*10+12}" height="40" rx="6" fill="${m.color}" stroke="${m.accent}" stroke-width="2"/>
+        <rect x="${-w*5-2}" y="14" width="${w*10+4}" height="6" rx="3" fill="${m.accent}"/>
+        <circle cx="${-w*5}" cy="-20" r="6" fill="#222" stroke="#444"/>
+        <circle cx="${w*5}" cy="-20" r="6" fill="#222" stroke="#444"/>
+        <circle cx="${-w*5}" cy="20" r="7" fill="#222" stroke="#444"/>
+        <circle cx="${w*5}" cy="20" r="7" fill="#222" stroke="#444"/>
+        ${m.robot ? '<rect x="-10" y="-10" width="20" height="20" rx="6" fill="#1a2230"/>' : ''}
         <circle cx="0" cy="-2" r="4" fill="${m.accent}"/>
       </g>
     </svg>`;
@@ -186,15 +219,15 @@
     const lr = $("#level-records");
     lr.innerHTML = "";
     LEVELS.forEach((L, i) => {
-      const unlocked = i <= state.levelReached;
+      const unlockedLvl = i <= state.levelReached;
       const stars = state.levelStars[i] || 0;
       const best = state.levelScores[i];
       const time = state.bestTimes[i];
       const row = document.createElement("div");
-      row.className = "lr-row" + (unlocked ? "" : " lr-locked");
+      row.className = "lr-row" + (unlockedLvl ? "" : " lr-locked");
       row.innerHTML = `
         <span class="stars">${[0,1,2].map(s => `<span class="${s<stars?'on':''}">${s<stars?'★':'☆'}</span>`).join("")}</span>
-        <span class="lr-name">${unlocked ? L.name : "🔒 Locked"}</span>
+        <span class="lr-name">${unlockedLvl ? L.name : "🔒 Locked"}</span>
         <span class="lr-time">${best != null ? best.toLocaleString("en-GB") + " pts" : "—"}</span>
         <span class="lr-time">${time != null ? fmtTime(time) : "—"}</span>`;
       lr.appendChild(row);
@@ -232,7 +265,9 @@
     turboTimer: 0, wideTimer: 0,
     hazards: [], hazardCooldown: 0,
     popups: [], shake: 0,
-    player: { x: 0, y: 0, vx: 0, vy: 0, angle: 0 },
+    // cable mechanic
+    corded: false, sockets: [], anchor: null, reach: 0, cableTaut: false, replugCd: 0,
+    player: { x: 0, y: 0, px: 0, py: 0, vx: 0, vy: 0, angle: 0 },
     input: { up: false, down: false, left: false, right: false },
     lastTs: 0, rafId: 0
   };
@@ -241,6 +276,15 @@
     const L = G.level;
     if (x < 0 || y < 0 || x >= L.cols || y >= L.rows) return true;
     return G.grid[y * L.cols + x] === 2;
+  }
+
+  function nearestSocket(x, y) {
+    let best = null, bd = Infinity;
+    for (const s of G.sockets) {
+      const d = Math.hypot(s.x - x, s.y - y);
+      if (d < bd) { bd = d; best = s; }
+    }
+    return best;
   }
 
   function startLevel(index) {
@@ -265,26 +309,35 @@
     for (let i = 0; i < G.grid.length; i++) if (G.grid[i] === 0) G.mowable++;
     G.cut = 0;
 
-    G.player.x = (level.start.x + 0.5) * CELL;
-    G.player.y = (level.start.y + 0.5) * CELL;
-    G.player.vx = G.player.vy = 0;
-    G.player.angle = 0;
+    const p = G.player;
+    p.x = (level.start.x + 0.5) * CELL;
+    p.y = (level.start.y + 0.5) * CELL;
+    p.px = p.x; p.py = p.y;
+    p.vx = p.vy = 0; p.angle = 0;
 
     G.energyMax = G.mower.energy;
     G.energy = G.energyMax;
-    G.time = 0;
-    G.bumps = 0;
-    G.bumpCooldown = 0;
-    G.reward = level.reward;
-    G.runCash = 0;
-    G.score = 0;
-    G.combo = 1; G.comboTimer = 0;
+    G.time = 0; G.bumps = 0; G.bumpCooldown = 0;
+    G.reward = level.reward; G.runCash = 0;
+    G.score = 0; G.combo = 1; G.comboTimer = 0;
     G.coinsCollected = 0;
     G.turboTimer = 0; G.wideTimer = 0;
     G.powerups = []; G.powerupTimer = 8;
     G.popups = []; G.shake = 0;
 
-    // scatter coins on free grass away from the spawn
+    // cable / sockets
+    G.sockets = (level.sockets || []).map(s => ({ x: (s.x + 0.5) * CELL, y: (s.y + 0.5) * CELL, cx: s.x, cy: s.y }));
+    G.corded = !!G.mower.corded;
+    if (G.corded) {
+      const ext = state.hasExtension ? MOWERS.EXTENSION.reach : 0;
+      G.reach = (G.mower.cableReach + ext) * CELL;
+      G.anchor = nearestSocket(p.x, p.y) || { x: p.x, y: p.y };
+    } else {
+      G.anchor = null; G.reach = 0;
+    }
+    G.cableTaut = false; G.replugCd = 0;
+
+    // coins
     G.coins = [];
     const want = level.coins || 0;
     let guard = 0;
@@ -299,16 +352,14 @@
 
     // hazards
     G.hazards = (level.hazards || []).map(h => ({
-      type: h.type,
-      x: (h.x + 0.5) * CELL, y: (h.y + 0.5) * CELL,
+      type: h.type, x: (h.x + 0.5) * CELL, y: (h.y + 0.5) * CELL,
       vx: (Math.random() < 0.5 ? -1 : 1) * (h.type === "dog" ? 70 : 50),
       vy: (Math.random() < 0.5 ? -1 : 1) * (h.type === "dog" ? 70 : 50),
       wob: Math.random() * 6
     }));
     G.hazardCooldown = 0;
 
-    G.paused = false;
-    G.running = true;
+    G.paused = false; G.running = true;
 
     $("#hud-mower-name").textContent = G.mower.name;
     $("#hud-level").textContent = (index + 1);
@@ -317,16 +368,15 @@
 
     show("game");
     hideOverlay();
-
     Sound.resume();
-    Sound.startEngine(G.mower.electric);
+    Sound.startEngine(G.mower.power !== "petrol");
 
     G.lastTs = performance.now();
     cancelAnimationFrame(G.rafId);
     G.rafId = requestAnimationFrame(loop);
   }
 
-  function computeStars(coinRatio, energyLeft) {
+  function computeStars(coinRatio) {
     let stars = 1;
     if (G.bumps === 0) stars++;
     if (coinRatio >= 0.7) stars++;
@@ -342,18 +392,14 @@
     const L = G.level;
 
     if (won) {
-      const corded = G.mower.electric && G.mower.corded;
       const coinRatio = L.coins ? G.coinsCollected / L.coins : 1;
-      const energyLeft = corded ? 1 : G.energy / G.energyMax;
-      const stars = computeStars(coinRatio, energyLeft);
+      const stars = computeStars(coinRatio);
 
-      // bonuses
       const cleanBonus = G.bumps === 0 ? 1000 : 0;
       const starBonus = stars * 500;
       const timeBonus = L.timeLimit ? Math.round(Math.max(0, L.timeLimit - G.time) * 5) : Math.round(Math.max(0, 200 - G.time) * 3);
       const finalScore = Math.round(G.score + cleanBonus + starBonus + timeBonus);
 
-      // payout
       const tidyCash = G.bumps === 0 ? Math.round(G.reward * 0.25) : 0;
       const payout = G.reward + tidyCash + G.runCash;
       state.wallet += payout;
@@ -402,9 +448,8 @@
       }
     } else {
       Sound.lose();
-      const corded = G.mower.electric && G.mower.corded;
-      const reason = (G.energy <= 0 && !corded)
-        ? (G.mower.electric ? "Battery flat" : "Out of fuel")
+      const reason = (!unlimited(G.mower) && G.energy <= 0)
+        ? (G.mower.power === "battery" ? "Battery flat" : "Out of fuel")
         : "Out of time";
       showOverlay({
         title: "Job Unfinished", cls: "lose",
@@ -431,6 +476,7 @@
 
   function update(dt) {
     const m = G.mower, p = G.player, L = G.level;
+    p.px = p.x; p.py = p.y;
 
     let dx = (G.input.right ? 1 : 0) - (G.input.left ? 1 : 0);
     let dy = (G.input.down ? 1 : 0) - (G.input.up ? 1 : 0);
@@ -466,16 +512,41 @@
     p.x = Math.max(halfW, Math.min(L.cols * CELL - halfW, p.x));
     p.y = Math.max(halfW, Math.min(L.rows * CELL - halfW, p.y));
 
-    G.bumpCooldown = Math.max(0, G.bumpCooldown - dt);
-    if (bumped && G.bumpCooldown <= 0) {
-      Sound.bump();
-      G.bumps++;
-      G.combo = 1; G.comboTimer = 0;
-      G.shake = 8;
-      G.bumpCooldown = 0.4;
+    // ---- cable constraint (corded mowers) ----
+    G.replugCd = Math.max(0, G.replugCd - dt);
+    if (G.corded && G.anchor) {
+      // re-plug when driving over a different socket
+      for (const s of G.sockets) {
+        if (s === G.anchor) continue;
+        if (Math.hypot(p.x - s.x, p.y - s.y) < CELL * 0.7 && G.replugCd <= 0) {
+          G.anchor = s; G.replugCd = 0.5;
+          addPopup(s.x, s.y - 12, "🔌 Re-plugged", "#36c0ff");
+          Sound.refuel();
+        }
+      }
+      const cdx = p.x - G.anchor.x, cdy = p.y - G.anchor.y;
+      const cd = Math.hypot(cdx, cdy);
+      if (cd > G.reach) {
+        // taut — clamp to the cable's reach circle
+        const clampX = G.anchor.x + (cdx / cd) * G.reach;
+        const clampY = G.anchor.y + (cdy / cd) * G.reach;
+        if (!blockedAt(clampX, clampY)) { p.x = clampX; p.y = clampY; }
+        else { p.x = p.px; p.y = p.py; }
+        p.vx *= 0.2; p.vy *= 0.2;
+        if (!G.cableTaut && speedNow > 60) Sound.bump();
+        G.cableTaut = true;
+      } else {
+        G.cableTaut = cd > G.reach * 0.9; // warn near the limit
+      }
     }
 
-    // timers
+    // bump
+    G.bumpCooldown = Math.max(0, G.bumpCooldown - dt);
+    if (bumped && G.bumpCooldown <= 0) {
+      Sound.bump(); G.bumps++; G.combo = 1; G.comboTimer = 0;
+      G.shake = 8; G.bumpCooldown = 0.4;
+    }
+
     if (G.turboTimer > 0) G.turboTimer -= dt;
     if (G.wideTimer > 0) G.wideTimer -= dt;
     G.shake = Math.max(0, G.shake - 22 * dt);
@@ -495,76 +566,61 @@
         }
       }
       if (cutCount) {
-        // build combo & score
         G.comboTimer = 0.7;
         G.combo = Math.min(MAX_COMBO, G.combo + cutCount * 0.06);
         G.score += cutCount * 10 * G.combo;
         if (Math.random() < 0.25) Sound.cut();
       }
-      if (!(m.electric && m.corded)) {
+      if (!unlimited(m)) {
         G.energy -= m.drain * dt * (0.6 + 0.4 * (speedNow / m.speed));
       }
     }
 
-    // combo decay
     if (G.comboTimer > 0) G.comboTimer -= dt;
     else if (G.combo > 1) G.combo = Math.max(1, G.combo - dt * 1.5);
 
-    // ---- coins ----
+    // coins
     for (const c of G.coins) {
       if (c.collected) continue;
       c.t += dt;
       if (Math.hypot(p.x - c.x, p.y - c.y) < CELL * 0.7) {
-        c.collected = true;
-        G.coinsCollected++;
-        G.runCash += COIN_VALUE;
+        c.collected = true; G.coinsCollected++; G.runCash += COIN_VALUE;
         G.score += Math.round(80 * G.combo);
-        addPopup(c.x, c.y, "+" + fmtMoney(COIN_VALUE), "#ffcf2b");
-        Sound.coin();
+        addPopup(c.x, c.y, "+" + fmtMoney(COIN_VALUE), "#ffcf2b"); Sound.coin();
       }
     }
 
-    // ---- power-ups ----
+    // power-ups
     G.powerupTimer -= dt;
     if (G.powerupTimer <= 0 && G.powerups.length < 2) {
-      spawnPowerup();
-      G.powerupTimer = 12 + Math.random() * 8;
+      spawnPowerup(); G.powerupTimer = 12 + Math.random() * 8;
     }
     for (let i = G.powerups.length - 1; i >= 0; i--) {
       const pu = G.powerups[i];
       pu.life -= dt; pu.t += dt;
       if (pu.life <= 0) { G.powerups.splice(i, 1); continue; }
-      if (Math.hypot(p.x - pu.x, p.y - pu.y) < CELL * 0.8) {
-        applyPowerup(pu);
-        G.powerups.splice(i, 1);
-      }
+      if (Math.hypot(p.x - pu.x, p.y - pu.y) < CELL * 0.8) { applyPowerup(pu); G.powerups.splice(i, 1); }
     }
 
-    // ---- hazards ----
+    // hazards
     G.hazardCooldown = Math.max(0, G.hazardCooldown - dt);
     for (const h of G.hazards) {
       h.wob += dt * 4;
-      let hx = h.x + h.vx * dt;
-      let hy = h.y + h.vy * dt;
+      let hx = h.x + h.vx * dt, hy = h.y + h.vy * dt;
       if (cellBlocked(Math.floor(hx / CELL), Math.floor(h.y / CELL)) || hx < CELL*0.6 || hx > L.cols*CELL - CELL*0.6) h.vx *= -1;
       else h.x = hx;
       if (cellBlocked(Math.floor(h.x / CELL), Math.floor(hy / CELL)) || hy < CELL*0.6 || hy > L.rows*CELL - CELL*0.6) h.vy *= -1;
       else h.y = hy;
-      // occasional direction jitter
       if (Math.random() < 0.01) { h.vx += (Math.random()-0.5)*30; h.vy += (Math.random()-0.5)*30; }
       if (G.hazardCooldown <= 0 && Math.hypot(p.x - h.x, p.y - h.y) < CELL * 0.85) {
-        // collision: stall + break combo
         p.vx = -p.vx * 0.4; p.vy = -p.vy * 0.4;
-        G.combo = 1; G.comboTimer = 0;
-        G.bumps++; G.shake = 10;
-        G.hazardCooldown = 0.8;
-        addPopup(p.x, p.y - 10, h.type === "dog" ? "Woof!" : "Honk!", "#ff6b6b");
-        Sound.bark();
+        G.combo = 1; G.comboTimer = 0; G.bumps++; G.shake = 10; G.hazardCooldown = 0.8;
+        addPopup(p.x, p.y - 10, h.type === "dog" ? "Woof!" : "Honk!", "#ff6b6b"); Sound.bark();
       }
     }
 
-    // refuel pads
-    if (!(m.electric && m.corded) && L.refuel) {
+    // refuel / charge pads (battery + petrol only)
+    if (!unlimited(m) && L.refuel) {
       const pcx = Math.floor(p.x / CELL), pcy = Math.floor(p.y / CELL);
       for (const r of L.refuel) {
         if (pcx === r.x && pcy === r.y && G.energy < G.energyMax) {
@@ -581,9 +637,9 @@
       if (pp.life <= 0) G.popups.splice(i, 1);
     }
 
-    // time & fail states
+    // time & fail
     G.time += dt;
-    if (!(m.electric && m.corded) && G.energy <= 0) { G.energy = 0; endRun(false); return; }
+    if (!unlimited(m) && G.energy <= 0) { G.energy = 0; endRun(false); return; }
     if (L.timeLimit > 0 && G.time >= L.timeLimit) { endRun(false); return; }
 
     const pct = (G.cut / G.mowable) * 100;
@@ -594,7 +650,8 @@
 
   function spawnPowerup() {
     const L = G.level;
-    const types = ["turbo", "widecut", "cash", (G.mower.electric && G.mower.corded) ? "cash" : "jerry"];
+    const fuelType = unlimited(G.mower) ? "cash" : "jerry";
+    const types = ["turbo", "widecut", "cash", fuelType];
     const type = types[Math.floor(Math.random() * types.length)];
     let guard = 0;
     while (guard++ < 200) {
@@ -611,12 +668,8 @@
     switch (pu.type) {
       case "turbo":   G.turboTimer = 6; addPopup(pu.x, pu.y, "TURBO!", "#ff8a00"); break;
       case "widecut": G.wideTimer = 6;  addPopup(pu.x, pu.y, "WIDE CUT!", "#8fd14f"); break;
-      case "jerry":
-        G.energy = Math.min(G.energyMax, G.energy + G.energyMax * 0.35);
-        addPopup(pu.x, pu.y, "+FUEL", "#4ad07a"); break;
-      case "cash":
-        G.runCash += 20; G.score += 200;
-        addPopup(pu.x, pu.y, "+£20", "#ffcf2b"); break;
+      case "jerry":   G.energy = Math.min(G.energyMax, G.energy + G.energyMax * 0.35); addPopup(pu.x, pu.y, "+FUEL", "#4ad07a"); break;
+      case "cash":    G.runCash += 20; G.score += 200; addPopup(pu.x, pu.y, "+£20", "#ffcf2b"); break;
     }
   }
 
@@ -626,21 +679,33 @@
   }
 
   function updateHUD() {
+    const m = G.mower;
     const pct = Math.round((G.cut / G.mowable) * 100);
     $("#hud-progress").textContent = pct + "%";
     $("#hud-score").textContent = Math.round(G.score).toLocaleString("en-GB");
 
-    const corded = G.mower.electric && G.mower.corded;
-    const ePct = corded ? 100 : Math.round((G.energy / G.energyMax) * 100);
     const bar = $("#hud-energy-bar");
-    bar.style.width = ePct + "%";
-    bar.style.background = ePct < 20 ? "linear-gradient(90deg,#e44,#ff8a00)" : "linear-gradient(90deg,#4ad07a,#ffcf2b)";
-    $("#hud-energy-text").textContent = corded ? "MAINS" : ePct + "%";
+    let fill, text, danger = false;
+    if (G.corded) {
+      const cd = G.anchor ? Math.hypot(G.player.x - G.anchor.x, G.player.y - G.anchor.y) : 0;
+      const slack = Math.max(0, 1 - cd / G.reach);
+      fill = Math.round(slack * 100);
+      text = G.cableTaut ? "CABLE TAUT" : "CABLE";
+      danger = G.cableTaut;
+    } else if (m.robot) {
+      fill = 100; text = "AUTO";
+    } else {
+      fill = Math.round((G.energy / G.energyMax) * 100);
+      text = (m.power === "battery" ? "BATT " : "FUEL ") + fill + "%";
+      danger = fill < 20;
+    }
+    bar.style.width = fill + "%";
+    bar.style.background = danger ? "linear-gradient(90deg,#e44,#ff8a00)" : "linear-gradient(90deg,#4ad07a,#ffcf2b)";
+    $("#hud-energy-text").textContent = text;
 
     $("#hud-time").textContent = G.level.timeLimit > 0 ? fmtTime(G.level.timeLimit - G.time) : fmtTime(G.time);
     $("#hud-money").textContent = (state.wallet + G.runCash).toLocaleString("en-GB");
 
-    // combo
     const comboEl = $("#hud-combo");
     const cx = G.combo;
     comboEl.classList.toggle("active", cx > 1.05);
@@ -650,7 +715,7 @@
 
   /* ---------------- rendering ---------------- */
   function render() {
-    const L = G.level;
+    const L = G.level, m = G.mower;
     ctx.save();
     if (G.shake > 0.2) ctx.translate((Math.random()-0.5)*G.shake, (Math.random()-0.5)*G.shake);
 
@@ -671,28 +736,67 @@
       }
     }
 
-    if (L.refuel) L.refuel.forEach(r => drawRefuel(r.x * CELL, r.y * CELL));
+    if (!unlimited(m) && L.refuel) L.refuel.forEach(r => drawRefuel(r.x * CELL, r.y * CELL));
+    if (G.corded) drawSockets();
     G.coins.forEach(drawCoin);
     G.powerups.forEach(drawPowerup);
     L.obstacles.forEach(drawObstacle);
+    if (G.corded && G.anchor) drawCable();
     G.hazards.forEach(drawHazard);
     drawMower();
     drawClips();
     drawPopups();
 
-    if (!(G.mower.electric && G.mower.corded) && G.energy / G.energyMax < 0.18) {
+    if (!unlimited(m) && G.energy / G.energyMax < 0.18) {
       ctx.globalAlpha = 0.18 + 0.12 * Math.sin(performance.now() / 120);
-      ctx.fillStyle = "#e44";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#e44"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1;
     }
+    ctx.restore();
+  }
+
+  function drawSockets() {
+    for (const s of G.sockets) {
+      const active = s === G.anchor;
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      // post / wall plate
+      ctx.fillStyle = active ? "#36c0ff" : "#9aa0a6";
+      roundRect(-9, -9, 18, 18, 4); ctx.fill();
+      ctx.fillStyle = "#11141a";
+      roundRect(-6, -6, 12, 12, 3); ctx.fill();
+      // prongs
+      ctx.fillStyle = active ? "#bfe9ff" : "#cfd3d8";
+      ctx.fillRect(-3.5, -3, 2.2, 6);
+      ctx.fillRect(1.3, -3, 2.2, 6);
+      if (active) {
+        ctx.globalAlpha = 0.35 + 0.25 * Math.sin(performance.now()/200);
+        ctx.strokeStyle = "#36c0ff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI*2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawCable() {
+    const a = G.anchor, p = G.player;
+    const mid = { x: (a.x + p.x) / 2, y: (a.y + p.y) / 2 + 16 }; // sag
+    ctx.save();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = G.cableTaut ? "#ff5a3c" : "#ffcf2b";
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(mid.x, mid.y, p.x, p.y);
+    ctx.stroke();
+    // plug end glow
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 3, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
   function drawCoin(c) {
     if (c.collected) return;
     const bob = Math.sin(c.t * 3) * 2;
-    const sx = Math.abs(Math.cos(c.t * 2)); // spin
+    const sx = Math.abs(Math.cos(c.t * 2));
     ctx.save();
     ctx.translate(c.x, c.y + bob);
     ctx.fillStyle = "#caa400";
@@ -709,13 +813,9 @@
     const fade = pu.life < 3 ? (0.4 + 0.6 * Math.abs(Math.sin(pu.t * 8))) : 1;
     const icon = { turbo: "⚡", widecut: "↔", jerry: "⛽", cash: "£" }[pu.type];
     const col = { turbo: "#ff8a00", widecut: "#8fd14f", jerry: "#4ad07a", cash: "#ffcf2b" }[pu.type];
-    ctx.save();
-    ctx.globalAlpha = fade;
-    ctx.translate(pu.x, pu.y + bob);
-    ctx.fillStyle = "rgba(0,0,0,.55)";
-    roundRect(-13, -13, 26, 26, 7); ctx.fill();
-    ctx.strokeStyle = col; ctx.lineWidth = 2;
-    roundRect(-13, -13, 26, 26, 7); ctx.stroke();
+    ctx.save(); ctx.globalAlpha = fade; ctx.translate(pu.x, pu.y + bob);
+    ctx.fillStyle = "rgba(0,0,0,.55)"; roundRect(-13, -13, 26, 26, 7); ctx.fill();
+    ctx.strokeStyle = col; ctx.lineWidth = 2; roundRect(-13, -13, 26, 26, 7); ctx.stroke();
     ctx.fillStyle = col; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(icon, 0, 1);
     ctx.restore();
@@ -728,24 +828,17 @@
     ctx.scale(facing, 1);
     const step = Math.sin(h.wob) * 2;
     if (h.type === "dog") {
-      ctx.fillStyle = "#8a5a2b";
-      roundRect(-11, -6 + step*0.2, 22, 12, 5); ctx.fill();      // body
-      ctx.fillStyle = "#724a22";
-      roundRect(7, -10, 11, 10, 4); ctx.fill();                  // head
-      ctx.fillStyle = "#4a2f15";
-      ctx.fillRect(16, -10, 3, 5);                               // ear
-      ctx.fillStyle = "#222";
-      ctx.fillRect(-12, -14, 3, 8);                              // tail
-      ctx.fillStyle = "#3a2410";
-      ctx.fillRect(-8, 5 + step, 3, 5); ctx.fillRect(5, 5 - step, 3, 5);
+      ctx.fillStyle = "#8a5a2b"; roundRect(-11, -6 + step*0.2, 22, 12, 5); ctx.fill();
+      ctx.fillStyle = "#724a22"; roundRect(7, -10, 11, 10, 4); ctx.fill();
+      ctx.fillStyle = "#4a2f15"; ctx.fillRect(16, -10, 3, 5);
+      ctx.fillStyle = "#222"; ctx.fillRect(-12, -14, 3, 8);
+      ctx.fillStyle = "#3a2410"; ctx.fillRect(-8, 5 + step, 3, 5); ctx.fillRect(5, 5 - step, 3, 5);
       ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(15, -6, 1.4, 0, 7); ctx.fill();
-    } else { // goose
-      ctx.fillStyle = "#f4f4f4";
-      roundRect(-10, -5 + step*0.2, 18, 11, 5); ctx.fill();      // body
-      ctx.fillStyle = "#fff";
-      roundRect(6, -14, 6, 12, 3); ctx.fill();                  // neck
-      ctx.beginPath(); ctx.arc(9, -14, 5, 0, 7); ctx.fill();    // head
-      ctx.fillStyle = "#ff9f1c"; ctx.beginPath(); ctx.moveTo(13,-15); ctx.lineTo(19,-13); ctx.lineTo(13,-11); ctx.fill(); // beak
+    } else {
+      ctx.fillStyle = "#f4f4f4"; roundRect(-10, -5 + step*0.2, 18, 11, 5); ctx.fill();
+      ctx.fillStyle = "#fff"; roundRect(6, -14, 6, 12, 3); ctx.fill();
+      ctx.beginPath(); ctx.arc(9, -14, 5, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ff9f1c"; ctx.beginPath(); ctx.moveTo(13,-15); ctx.lineTo(19,-13); ctx.lineTo(13,-11); ctx.fill();
       ctx.fillStyle = "#ff9f1c"; ctx.fillRect(-6, 5+step, 2, 5); ctx.fillRect(2, 5-step, 2, 5);
       ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(10, -15, 1.2, 0, 7); ctx.fill();
     }
@@ -753,9 +846,7 @@
   }
 
   function drawPopups() {
-    ctx.save();
-    ctx.font = "bold 14px sans-serif";
-    ctx.textAlign = "center";
+    ctx.save(); ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
     for (const pp of G.popups) {
       ctx.globalAlpha = Math.max(0, Math.min(1, pp.life * 1.4));
       ctx.fillStyle = "#000"; ctx.fillText(pp.text, pp.x + 1, pp.y + 1);
@@ -766,12 +857,11 @@
 
   function drawRefuel(px, py) {
     ctx.save();
-    ctx.fillStyle = "rgba(255,207,43,0.18)";
-    ctx.fillRect(px, py, CELL, CELL);
+    ctx.fillStyle = "rgba(255,207,43,0.18)"; ctx.fillRect(px, py, CELL, CELL);
     ctx.strokeStyle = "#ffcf2b"; ctx.setLineDash([4, 3]);
     ctx.strokeRect(px + 2, py + 2, CELL - 4, CELL - 4); ctx.setLineDash([]);
     ctx.fillStyle = "#ffcf2b"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(G.mower.electric ? "⚡" : "⛽", px + CELL / 2, py + CELL / 2 + 1);
+    ctx.fillText(G.mower.power === "battery" ? "⚡" : "⛽", px + CELL / 2, py + CELL / 2 + 1);
     ctx.restore();
   }
 
@@ -789,11 +879,10 @@
         ctx.fillStyle = "rgba(255,255,255,0.18)"; roundRect(px+8, py+8, w*0.4, h*0.25, 8); ctx.fill();
         break;
       case "bed":
-        ctx.fillStyle = "#1f6b2a"; roundRect(px+1, py+1, w-2, h-2, 8); ctx.fill(); // hedge green
+        ctx.fillStyle = "#1f6b2a"; roundRect(px+1, py+1, w-2, h-2, 8); ctx.fill();
         ctx.fillStyle = "#2a8038";
         for (let yy = py+4; yy < py+h-4; yy += 7)
           for (let xx = px+4; xx < px+w-4; xx += 7) { ctx.beginPath(); ctx.arc(xx, yy, 3, 0, 7); ctx.fill(); }
-        // a few flowers on top
         const cols = ["#e85d75","#ffd23f","#9b5de5","#f15bb5"];
         for (let i = 0; i < (o.w*o.h*0.5); i++) {
           ctx.fillStyle = cols[i % cols.length];
@@ -835,28 +924,26 @@
     const bw = (m.cutWidth + (wide ? 2 : 0)) * CELL * 0.78;
     const bl = CELL * 1.4;
 
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
-    roundRect(-bw/2 + 3, -bl/2 + 5, bw, bl, 7); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.28)"; roundRect(-bw/2 + 3, -bl/2 + 5, bw, bl, 7); ctx.fill();
 
     if (G.turboTimer > 0) {
       ctx.strokeStyle = "rgba(255,138,0," + (0.4 + 0.3*Math.sin(performance.now()/60)) + ")";
       ctx.lineWidth = 3; roundRect(-bw/2 - 3, -bl/2 - 3, bw + 6, bl + 6, 9); ctx.stroke();
     }
 
-    ctx.fillStyle = wide ? "#8fd14f" : m.accent;
-    roundRect(-bw/2, -bl/2, bw, 8, 4); ctx.fill();
+    ctx.fillStyle = wide ? "#8fd14f" : m.accent; roundRect(-bw/2, -bl/2, bw, 8, 4); ctx.fill();
+    ctx.fillStyle = m.color; roundRect(-bw/2 + 3, -bl/2 + 6, bw - 6, bl - 6, 6); ctx.fill();
+    ctx.strokeStyle = m.accent; ctx.lineWidth = 2; roundRect(-bw/2 + 3, -bl/2 + 6, bw - 6, bl - 6, 6); ctx.stroke();
 
-    ctx.fillStyle = m.color;
-    roundRect(-bw/2 + 3, -bl/2 + 6, bw - 6, bl - 6, 6); ctx.fill();
-    ctx.strokeStyle = m.accent; ctx.lineWidth = 2;
-    roundRect(-bw/2 + 3, -bl/2 + 6, bw - 6, bl - 6, 6); ctx.stroke();
-
-    ctx.fillStyle = "#2a2a2a";
-    roundRect(-bw*0.18, -bl*0.18, bw*0.36, bl*0.36, 4); ctx.fill();
+    ctx.fillStyle = "#2a2a2a"; roundRect(-bw*0.18, -bl*0.18, bw*0.36, bl*0.36, 4); ctx.fill();
     ctx.fillStyle = m.accent; ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI*2); ctx.fill();
 
-    if (m.rider) { ctx.fillStyle = "#333"; roundRect(-bw*0.16, bl*0.18, bw*0.32, bl*0.28, 4); ctx.fill(); }
-    else {
+    if (m.robot) {
+      ctx.fillStyle = "#1a2230"; roundRect(-bw*0.3, -bl*0.3, bw*0.6, bl*0.6, 6); ctx.fill();
+      ctx.fillStyle = m.accent; ctx.fillRect(-bw*0.2, -1, bw*0.4, 2);
+    } else if (m.rider) {
+      ctx.fillStyle = "#333"; roundRect(-bw*0.16, bl*0.18, bw*0.32, bl*0.28, 4); ctx.fill();
+    } else {
       ctx.strokeStyle = "#888"; ctx.lineWidth = 3; ctx.beginPath();
       ctx.moveTo(-bw*0.28, bl*0.5); ctx.lineTo(-bw*0.18, bl*0.78);
       ctx.lineTo(bw*0.18, bl*0.78); ctx.lineTo(bw*0.28, bl*0.5); ctx.stroke();
@@ -914,7 +1001,6 @@
     $("#overlay-title").className = cls || "";
 
     const card = $("#overlay-card");
-    // remove any previous star/hs blocks
     card.querySelectorAll(".overlay-stars, .hs-entry").forEach(e => e.remove());
 
     if (stars != null) {
@@ -951,14 +1037,11 @@
       setTimeout(() => inputs[0].focus(), 50);
 
       const submit = document.createElement("button");
-      submit.className = "btn btn-primary";
-      submit.textContent = "Save Score";
+      submit.className = "btn btn-primary"; submit.textContent = "Save Score";
       submit.onclick = () => {
         const name = inputs.map(x => x.value || "_").join("").slice(0, 3) || "AAA";
         insertLeaderboard(name, hsEntry.score, hsEntry.level);
-        Sound.buy();
-        wrap.remove();
-        // swap to the normal continuation buttons
+        Sound.buy(); wrap.remove();
         renderButtons(hsEntry.buttons);
         if (hsEntry.onSubmit) hsEntry.onSubmit();
       };
@@ -1042,7 +1125,6 @@
     w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right"
   };
   window.addEventListener("keydown", (e) => {
-    // don't hijack typing into the high-score inputs
     if (e.target && e.target.tagName === "INPUT") return;
     if (e.key === "Escape" || e.key === "p" || e.key === "P") { togglePause(); return; }
     const dir = keyMap[e.key];

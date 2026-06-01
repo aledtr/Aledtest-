@@ -1,11 +1,11 @@
 # 🚜 Hyundai Mow Master — Black Range Lawn Mowing Game
 
 A complete, polished, browser-based arcade lawn-mowing game built around the
-**Hyundai "Black Range"** of lawnmowers. Pick a machine from the line-up, drive
-it across overgrown gardens, cut the grass to the target percentage before you
-run out of fuel/battery or time, grab coins and power-ups, chain combos for big
-scores, dodge the wildlife, earn cash, and unlock faster, wider machines —
-all while chasing the top of the leaderboard.
+**real Hyundai Power Products lawnmower range**. Every machine in the game is an
+actual Hyundai model, and **its real-world spec is turned into a difficulty
+layer** — the corded mowers are tethered by a cable that only reaches so far,
+the cordless mowers trade freedom for battery life, the petrol mowers are
+powerful but thirsty, and the HYRM1000 robot never stops but has a tiny deck.
 
 No build step, no dependencies, no binary assets — pure HTML5 Canvas + vanilla
 JavaScript, with all sound synthesised at runtime via the Web Audio API.
@@ -14,12 +14,8 @@ JavaScript, with all sound synthesised at runtime via the Web Audio API.
 
 ## ▶ Play it
 
-Open it through a tiny local web server (the game loads its scripts as separate
-files):
-
 ```bash
-npx http-server -p 8080 -c-1
-#   then visit  http://localhost:8080
+npx http-server -p 8080 -c-1   # then visit http://localhost:8080
 ```
 
 Or simply double-click `index.html`.
@@ -27,79 +23,87 @@ Or simply double-click `index.html`.
 ## 🎮 How to play
 
 - **Move:** `W` `A` `S` `D` or the **Arrow keys** (on-screen pad on touch devices).
-- **Cut:** drive over uncut grass — wider decks cut more per pass and leave that
-  satisfying striped finish.
-- **Combo:** keep cutting continuously to build a **multiplier up to x5** — the
-  higher the combo, the more points every blade of grass and every coin is worth.
-  Stop cutting, bump an obstacle, or get spooked by wildlife and it resets.
-- **Coins (£):** scattered across each lawn — drive over them for bonus cash and
-  points, and to chase the 3rd star.
-- **Power-ups:** grab the floating crates — ⚡ **Turbo** (speed boost),
-  ↔ **Wide Cut** (bigger deck), ⛽ **Fuel** (top-up), £ **Cash**.
-- **Energy:** petrol mowers burn fuel and cordless mowers drain a battery
-  (the corded starter runs off the mains — unlimited). Drive onto a glowing
-  **refuel pad** (⛽ / ⚡) to top up.
-- **Avoid:** trees, ponds, hedges, rocks, gnomes, sheds — **and the wildlife**.
-  Loose **dogs** 🐕 and **geese** 🪿 roam the bigger lawns; bump anything and you
-  stall, lose your combo and forfeit your tidiness bonus.
-- **Stars ⭐:** earn up to **3 stars** per lawn — one for finishing, one for a
-  clean bump-free run, one for collecting most of the coins.
-- **Earn & upgrade:** bank £ per lawn (plus bonuses), then spend it in the
-  **Garage** on better Hyundai machines.
-- **Records 🏆:** every win is scored; beat the board to enter your initials on
-  the **leaderboard**, and track your per-lawn stars, best scores and best times.
+- **Cut:** drive over uncut grass — wider decks cut more per pass and leave a
+  striped finish. Keep cutting to build a **combo multiplier up to x5**.
+- **Coins & power-ups:** grab £ coins and crates — ⚡ Turbo, ↔ Wide Cut,
+  ⛽ Fuel, £ Cash.
+- **Avoid:** trees, ponds, hedges, rocks, gnomes — and roaming **dogs** 🐕 and
+  **geese** 🪿. Bumping anything stalls you and breaks your combo.
+- **Stars ⭐:** up to 3 per lawn (finish / clean run / coins collected).
+- **Records 🏆:** beat the top-10 **leaderboard** and enter your initials.
 
-`P` / `Esc` pauses · 🔊 toggles sound · progress, wallet, unlocks, stars and
-scores all save to `localStorage`.
+`P` / `Esc` pauses · 🔊 toggles sound · everything saves to `localStorage`.
+
+## ⚙️ The spec *is* the difficulty
+
+Each power type plays completely differently — straight from the real spec sheet:
+
+| Type | Real trait | In-game challenge |
+|------|-----------|-------------------|
+| 🟡 **Corded (mains)** | The lead only reaches so far (e.g. the HYM3800E ships with a 10m cable) | **Unlimited power, but you're tethered to a wall socket.** Go too far and the cable pulls **taut** — you physically can't continue. **Re-plug** into another socket dotted around the garden, or fit the **🔌 Extension Cable** upgrade to reach further. *Use an extension, or switch sockets?* |
+| 🟢 **Battery (cordless)** | Finite charge (~60 min on the HYM40Li330P) | Total freedom of movement, but the charge runs down — top up on a **⚡ charge pad**. |
+| 🟠 **Petrol** | Big engine, big tank, but burns fuel | The most power, width and speed — but visit the **⛽ refuel pad** before the tank runs dry. |
+| 🔵 **Robot (HYRM1000)** | Self-charging, but only an 18cm deck | Never runs out of power, but the tiny cut means **total coverage** is the real test. |
+
+### The cable mechanic in detail
+Corded mowers anchor to the nearest **wall socket** when you start. A live cable
+is drawn from the socket to the mower; it sags when you have slack and turns
+**red when taut**. To mow a far corner you must **drive over another socket to
+re-plug**, or buy the **Extension Cable** in the Garage (+6 cells of reach on
+every corded machine) so a single socket covers more ground. Short-cable mowers
+are cheap and never run out — but planning your socket route is the puzzle.
+
+## 🏁 The roster — real Hyundai Power Products mowers (9 machines)
+
+| Model | Type | Real-world spec |
+|-------|------|-----------------|
+| **HYM3300E** | Corded · 33cm | 1200W mains, short lead — the free starter |
+| **HYM3800E** | Corded · 38cm | 1600W, **10m long-reach cable**, rear roller, 40L |
+| **HYM40Li330P** | 40V Cordless · 33cm | 40V 2.5Ah, ~60 min runtime, stripe roller |
+| **HYM430SPE** | Petrol · 42cm | 139cc electric-start, self-propelled, 45L |
+| **HYM460SP** | Petrol · 46cm | 139cc 4-in-1 self-propelled, 55L |
+| **HYM480SPER** | Petrol Roller · 48cm | 139cc electric-start roller, big 70L box |
+| **HYM510SPE** | Petrol · 51cm | 196cc, 1L tank, 4-speed self-propelled, 70L |
+| **HYM510SPEZ** | Petrol Zero-Turn · 51cm | 196cc with razor-sharp zero-turn steering |
+| **HYRM1000** | Robot · 18cm | 22.2V Li-ion, self-charging, 625m² |
+
+*Specs are real Hyundai Power Products figures, balanced into game stats.*
+
+## 🗺️ Career levels (8 gardens)
+
+*The Back Garden · Cottage Lawn · The Orchard · Manor Grounds · Riverside Park ·
+The Estate Gardens · Maze Hedges · The Grand Final* — with rising targets,
+tighter time limits, more coins, more wildlife, and **wall sockets** placed for
+corded play.
 
 ![gameplay](docs/gameplay.png)
-*Riverside Park — coins, an x3.6 combo, two roaming geese, ponds and rocks.*
+*The cable runs from the glowing socket to the mower and turns red when taut —
+re-plug elsewhere or fit the extension cable to reach the far corners.*
 
 ![records](docs/records.png)
 *The Records screen — leaderboard plus per-lawn stars, best scores and times.*
 
-## 🏁 The Hyundai Black Range roster (8 machines)
-
-| Model | Class | Cut | Notes |
-|-------|-------|-----|-------|
-| **HYM3200E** | Corded Electric | 32cm | Free starter — unlimited mains power, narrow deck |
-| **HYM430SP** | Petrol · Self-Propelled | 43cm | Balanced workhorse |
-| **HYM40Li420** | 40V Cordless | 42cm | Quiet, brisk, no refuel pads needed |
-| **HYM480SPE** | Petrol · Electric Start | 48cm | All-rounder, push-button ignition |
-| **HYM510SPE** | Petrol · Electric Start | 51cm | Wide cut, big tank |
-| **HYM80Li460** | 80V Pro Cordless | 46cm | Fast, strong, quiet |
-| **HYR1300 Rider** | Ride-On Tractor | 76cm | Demolishes big lawns |
-| **HYR2400 V-Twin** | Pro Ride-On · Flagship | 92cm | The ultimate machine — twin-blade, monster tank |
-
-## 🗺️ Career levels (8 gardens)
-
-Eight increasingly demanding gardens — *The Back Garden*, *Cottage Lawn*,
-*The Orchard*, *Manor Grounds*, *Riverside Park*, *The Estate Gardens*,
-*Maze Hedges* and *The Grand Final* — with rising target percentages, tighter
-time limits, more coins, more obstacles, and more roaming wildlife.
-
 ## 🗂️ Project structure
 
 ```
-index.html        markup + screens (menu / garage / records / game / overlays)
+index.html        screens (menu / garage / records / game / overlays)
 css/style.css     all styling
-js/audio.js       Web Audio engine — engine drone + UI/event SFX (no audio files)
-js/mowers.js      the Hyundai Black Range roster + stats
-js/levels.js      career garden definitions (obstacles, coins, hazards, refuel)
-js/game.js        screen routing, save state, garage/shop, records, gameplay loop
+js/audio.js       Web Audio engine — engine drone + SFX (no audio files)
+js/mowers.js      the real Hyundai roster + spec-driven stats
+js/levels.js      gardens (obstacles, coins, hazards, refuel pads, sockets)
+js/game.js        routing, save, garage/shop, records, gameplay + cable logic
 ```
 
 ## 🛠️ Tech
 
-Vanilla JS + Canvas 2D. The mower engine sound and every effect are synthesised
-at runtime with the Web Audio API, so the whole game ships as a handful of text
-files with **zero binary assets** (bar the README screenshot). Verified
-end-to-end with a headless Playwright suite covering load, garage purchases,
-records/leaderboard, coins, combos, scoring, stars, the high-score entry flow
-and full level progression.
+Vanilla JS + Canvas 2D, zero binary assets (bar the README screenshots).
+Verified end-to-end with a headless Playwright suite covering the roster/specs,
+the garage and extension-cable purchase, the corded **cable-reach mechanic**
+(HUD state, taut clamping, completing a lawn within reach via re-plugging),
+battery/petrol HUD, coins, combos, scoring, stars and the leaderboard.
 
 ---
 
-*Fan-made tribute. "Hyundai" and the model names referenced are trademarks of
-their respective owners and are used here descriptively for a non-commercial
-fan game.*
+*Fan-made tribute. "Hyundai", "Hyundai Power Products" and the model names
+referenced are trademarks of their respective owners and are used here
+descriptively for a non-commercial fan game.*

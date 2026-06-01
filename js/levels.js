@@ -8,11 +8,12 @@
    - timeLimit : seconds (0 = untimed)
    - reward    : £ paid on completion
    - obstacles : array of { type, x, y, w, h } in CELL units
-   - refuel    : array of { x, y } refuel-pad cells (petrol/battery top-up)
+   - refuel    : array of { x, y } refuel/charge pad cells
+   - sockets   : array of { x, y } mains wall sockets for corded mowers
    - start     : { x, y } mower spawn cell
    - coins     : how many collectible £ coins to scatter on the grass
    - hazards   : array of { type, x, y } roaming critters (dog | goose)
-   obstacle types: tree | pond | bed (flowerbed) | gnome | shed | rock
+   obstacle types: tree | pond | bed (hedge) | gnome | shed | rock
    ============================================================ */
 (function (global) {
   "use strict";
@@ -28,7 +29,8 @@
         { type: "bed",  x: 15, y: 3, w: 4, h: 2 },
         { type: "gnome", x: 11, y: 10, w: 1, h: 1 }
       ],
-      refuel: [{ x: 20, y: 13 }]
+      refuel:  [{ x: 20, y: 13 }],
+      sockets: [{ x: 1, y: 1 }, { x: 10, y: 1 }, { x: 20, y: 1 }, { x: 1, y: 13 }, { x: 10, y: 13 }, { x: 20, y: 13 }]
     },
     {
       name: "Cottage Lawn",
@@ -42,7 +44,8 @@
         { type: "bed",  x: 17, y: 12, w: 5, h: 2 },
         { type: "gnome", x: 8, y: 2, w: 1, h: 1 }
       ],
-      refuel: [{ x: 24, y: 15 }, { x: 2, y: 15 }]
+      refuel:  [{ x: 24, y: 15 }, { x: 2, y: 15 }],
+      sockets: [{ x: 1, y: 1 }, { x: 12, y: 1 }, { x: 24, y: 1 }, { x: 1, y: 15 }, { x: 12, y: 15 }, { x: 24, y: 15 }]
     },
     {
       name: "The Orchard",
@@ -58,7 +61,8 @@
         { type: "tree", x: 19, y: 12, w: 2, h: 2 },
         { type: "shed", x: 24, y: 1, w: 3, h: 3 }
       ],
-      refuel: [{ x: 26, y: 16 }],
+      refuel:  [{ x: 26, y: 16 }],
+      sockets: [{ x: 1, y: 1 }, { x: 13, y: 1 }, { x: 26, y: 1 }, { x: 1, y: 16 }, { x: 13, y: 16 }, { x: 26, y: 16 }],
       hazards: [{ type: "goose", x: 14, y: 9 }]
     },
     {
@@ -76,7 +80,8 @@
         { type: "gnome", x: 9, y: 17, w: 1, h: 1 },
         { type: "shed", x: 28, y: 16, w: 3, h: 3 }
       ],
-      refuel: [{ x: 1, y: 18 }, { x: 30, y: 1 }],
+      refuel:  [{ x: 1, y: 18 }, { x: 30, y: 1 }],
+      sockets: [{ x: 1, y: 1 }, { x: 30, y: 8 }, { x: 1, y: 18 }, { x: 16, y: 18 }],
       hazards: [{ type: "dog", x: 16, y: 10 }]
     },
     {
@@ -95,7 +100,8 @@
         { type: "rock", x: 25, y: 16, w: 2, h: 2 },
         { type: "gnome", x: 17, y: 6, w: 1, h: 1 }
       ],
-      refuel: [{ x: 1, y: 19 }, { x: 32, y: 19 }],
+      refuel:  [{ x: 1, y: 19 }, { x: 32, y: 19 }],
+      sockets: [{ x: 1, y: 1 }, { x: 32, y: 1 }, { x: 17, y: 19 }, { x: 1, y: 19 }],
       hazards: [{ type: "goose", x: 12, y: 12 }, { type: "goose", x: 24, y: 6 }]
     },
     {
@@ -116,7 +122,8 @@
         { type: "gnome", x: 33, y: 19, w: 1, h: 1 },
         { type: "shed", x: 32, y: 1, w: 3, h: 3 }
       ],
-      refuel: [{ x: 1, y: 20 }, { x: 34, y: 20 }, { x: 18, y: 11 }],
+      refuel:  [{ x: 1, y: 20 }, { x: 34, y: 20 }, { x: 18, y: 11 }],
+      sockets: [{ x: 1, y: 1 }, { x: 34, y: 8 }, { x: 1, y: 20 }, { x: 18, y: 20 }],
       hazards: [{ type: "dog", x: 18, y: 11 }, { type: "goose", x: 6, y: 16 }]
     },
     {
@@ -125,7 +132,6 @@
       target: 88, timeLimit: 245, reward: 430, coins: 20,
       start: { x: 1, y: 1 },
       obstacles: [
-        // hedge maze made of long bed strips
         { type: "bed", x: 6,  y: 3,  w: 2, h: 12 },
         { type: "bed", x: 12, y: 8,  w: 2, h: 13 },
         { type: "bed", x: 18, y: 2,  w: 2, h: 14 },
@@ -136,7 +142,8 @@
         { type: "gnome", x: 9, y: 18, w: 1, h: 1 },
         { type: "gnome", x: 27, y: 4, w: 1, h: 1 }
       ],
-      refuel: [{ x: 1, y: 21 }, { x: 36, y: 21 }, { x: 21, y: 1 }],
+      refuel:  [{ x: 1, y: 21 }, { x: 36, y: 21 }, { x: 21, y: 1 }],
+      sockets: [{ x: 1, y: 1 }, { x: 36, y: 1 }, { x: 1, y: 21 }, { x: 36, y: 21 }, { x: 21, y: 22 }],
       hazards: [{ type: "dog", x: 20, y: 18 }, { type: "goose", x: 9, y: 10 }]
     },
     {
@@ -161,7 +168,8 @@
         { type: "gnome", x: 37, y: 21, w: 1, h: 1 },
         { type: "shed", x: 36, y: 1, w: 3, h: 3 }
       ],
-      refuel: [{ x: 1, y: 22 }, { x: 38, y: 22 }, { x: 20, y: 7 }, { x: 20, y: 17 }],
+      refuel:  [{ x: 1, y: 22 }, { x: 38, y: 22 }, { x: 20, y: 7 }, { x: 20, y: 17 }],
+      sockets: [{ x: 1, y: 1 }, { x: 38, y: 1 }, { x: 1, y: 22 }, { x: 38, y: 22 }, { x: 20, y: 22 }],
       hazards: [{ type: "dog", x: 20, y: 12 }, { type: "dog", x: 8, y: 20 }, { type: "goose", x: 32, y: 10 }]
     }
   ];
