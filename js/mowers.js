@@ -60,11 +60,26 @@
       accent: "#8fd14f"
     },
     {
+      id: "hym480spe",
+      name: "HYM480SPE",
+      class: "Petrol · Electric Start",
+      desc: "48cm electric-start petrol all-rounder. Push-button ignition and a healthy tank.",
+      price: 640,
+      electric: false,
+      cutWidth: 4,
+      speed: 158,
+      turn: 0.23,
+      energy: 88,
+      drain: 1.0,
+      color: "#0e0e0e",
+      accent: "#ffcf2b"
+    },
+    {
       id: "hym510spe",
       name: "HYM510SPE",
       class: "Petrol · Electric Start",
       desc: "51cm electric-start petrol beast. Wide cut, big tank, push-button ignition.",
-      price: 760,
+      price: 820,
       electric: false,
       cutWidth: 4,
       speed: 156,
@@ -93,7 +108,7 @@
       id: "hyr1300",
       name: "HYR1300 Rider",
       class: "Ride-On Tractor",
-      desc: "The flagship. A 76cm ride-on cutting deck that demolishes big lawns in record time.",
+      desc: "A 76cm ride-on cutting deck that demolishes big lawns in record time.",
       price: 2400,
       electric: false,
       cutWidth: 6,
@@ -104,6 +119,22 @@
       color: "#0a0a0a",
       accent: "#ffcf2b",
       rider: true
+    },
+    {
+      id: "hyr2400",
+      name: "HYR2400 V-Twin",
+      class: "Pro Ride-On · Flagship",
+      desc: "The ultimate Black Range machine. A 92cm twin-blade deck, monster tank and serious pace.",
+      price: 4800,
+      electric: false,
+      cutWidth: 7,
+      speed: 214,
+      turn: 0.18,
+      energy: 190,
+      drain: 1.15,
+      color: "#080808",
+      accent: "#ff8a00",
+      rider: true
     }
   ];
 
@@ -113,9 +144,9 @@
   // Normalised 0..1 stat bars for the garage UI
   MOWERS.bars = function (m) {
     return {
-      speed: Math.min(1, (m.speed - 120) / 90),
-      width: Math.min(1, m.cutWidth / 6),
-      runtime: m.electric && m.corded ? 1 : Math.min(1, m.energy / 150),
+      speed: Math.min(1, (m.speed - 120) / 100),
+      width: Math.min(1, m.cutWidth / 7),
+      runtime: m.electric && m.corded ? 1 : Math.min(1, m.energy / 190),
       handling: Math.min(1, m.turn / 0.30)
     };
   };
