@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyundai Mow Master — Black Range Lawn Mowing Game</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============ MAIN MENU ============ -->
+    <section id="screen-menu" class="screen active">
+      <div class="menu-card">
+        <div class="brand">
+          <span class="brand-h">HYUNDAI</span>
+          <span class="brand-sub">BLACK RANGE</span>
+        </div>
+        <h1 class="title">MOW<span class="accent">MASTER</span></h1>
+        <p class="tagline">Tame the grass. Master the machine.</p>
+        <div class="menu-buttons">
+          <button class="btn btn-primary" data-action="play">▶ Play Career</button>
+          <button class="btn" data-action="garage">🚜 Garage</button>
+          <button class="btn" data-action="howto">📖 How to Play</button>
+          <button class="btn btn-ghost" data-action="reset">↺ Reset Save</button>
+        </div>
+        <div class="wallet-line">Wallet: <span id="menu-wallet">£0</span></div>
+      </div>
+      <footer class="legal">Fan-made tribute game. Hyundai and the Hyundai model names are trademarks of their respective owners and used here for descriptive purposes only.</footer>
+    </section>
+
+    <!-- ============ HOW TO PLAY ============ -->
+    <section id="screen-howto" class="screen">
+      <div class="panel">
+        <h2>How to Play</h2>
+        <ul class="howto-list">
+          <li><b>Goal:</b> Cut the required percentage of grass on each lawn before you run out of fuel/battery or time.</li>
+          <li><b>Move:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the <kbd>Arrow</kbd> keys. On touch devices, use the on-screen pad.</li>
+          <li><b>Cut:</b> Just drive over uncut grass. Wider decks cut more in one pass.</li>
+          <li><b>Energy:</b> Petrol mowers burn fuel; cordless mowers drain a battery. Drive over the <span class="pill pill-fuel">refuel pad</span> to top up.</li>
+          <li><b>Avoid:</b> Trees, ponds, flowerbeds and gnomes. Hitting an obstacle stalls you and dents your tidiness bonus.</li>
+          <li><b>Earn:</b> Finish lawns to earn £. Spend it in the Garage to unlock faster, wider, longer-lasting Hyundai machines.</li>
+        </ul>
+        <button class="btn btn-primary" data-action="back-menu">Back</button>
+      </div>
+    </section>
+
+    <!-- ============ GARAGE / SHOP ============ -->
+    <section id="screen-garage" class="screen">
+      <div class="garage-head">
+        <h2>The Garage <span class="muted">— Hyundai Black Range</span></h2>
+        <div class="wallet-line">Wallet: <span id="garage-wallet">£0</span></div>
+      </div>
+      <div id="mower-grid" class="mower-grid"></div>
+      <div class="garage-foot">
+        <button class="btn" data-action="back-menu">Back</button>
+        <button class="btn btn-primary" data-action="play">Start Career ▶</button>
+      </div>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="screen-game" class="screen">
+      <div class="hud">
+        <div class="hud-left">
+          <div class="hud-stat"><span class="hud-label">LEVEL</span><span id="hud-level">1</span></div>
+          <div class="hud-stat"><span class="hud-label">MOWED</span><span id="hud-progress">0%</span> <span class="muted">/ <span id="hud-target">80%</span></span></div>
+        </div>
+        <div class="hud-center">
+          <div class="hud-mower" id="hud-mower-name">—</div>
+          <div class="bar"><div class="bar-fill bar-energy" id="hud-energy-bar"></div><span class="bar-text" id="hud-energy-text">100%</span></div>
+        </div>
+        <div class="hud-right">
+          <div class="hud-stat"><span class="hud-label">TIME</span><span id="hud-time">0:00</span></div>
+          <div class="hud-stat"><span class="hud-label">£</span><span id="hud-money">0</span></div>
+          <button class="btn btn-small" data-action="pause">II</button>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="game-canvas" width="900" height="600"></canvas>
+        <!-- Touch controls -->
+        <div class="touchpad" id="touchpad">
+          <button class="tbtn t-up" data-dir="up">▲</button>
+          <button class="tbtn t-left" data-dir="left">◀</button>
+          <button class="tbtn t-right" data-dir="right">▶</button>
+          <button class="tbtn t-down" data-dir="down">▼</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OVERLAYS ============ -->
+    <div id="overlay" class="overlay">
+      <div class="overlay-card" id="overlay-card">
+        <h2 id="overlay-title">Paused</h2>
+        <p id="overlay-body"></p>
+        <div id="overlay-stats" class="overlay-stats"></div>
+        <div class="overlay-buttons" id="overlay-buttons"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/mowers.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
