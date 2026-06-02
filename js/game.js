@@ -95,7 +95,7 @@
       const card = document.createElement("div");
       card.className = "mower-card" + (selected ? " selected" : "") + (owned ? "" : " locked");
       card.innerHTML = `
-        <div class="mower-thumb">${mowerThumbSVG(m)}<span class="thumb-tag tag-${m.power}">${powerLabel(m)}</span></div>
+        <div class="mower-thumb"><canvas class="thumb-canvas" width="240" height="132"></canvas><span class="thumb-tag tag-${m.power}">${powerLabel(m)}</span></div>
         <div>
           <div class="mower-class">${m.class}</div>
           <div class="mower-name">${m.name}</div>
@@ -129,6 +129,7 @@
         foot.appendChild(sel);
       }
       grid.appendChild(card);
+      paintThumb(card.querySelector(".thumb-canvas"), m);
     });
     refreshWallets();
   }
@@ -181,21 +182,140 @@
     Sound.buy(); saveState(); renderGarage();
   }
 
-  function mowerThumbSVG(m) {
-    const w = Math.max(2, m.cutWidth);
-    return `<svg viewBox="0 0 120 92" width="100%" height="100%">
-      <rect width="120" height="92" fill="#000"/>
-      <g transform="translate(60,46)">
-        <rect x="${-w*5-6}" y="-20" width="${w*10+12}" height="40" rx="6" fill="${m.color}" stroke="${m.accent}" stroke-width="2"/>
-        <rect x="${-w*5-2}" y="14" width="${w*10+4}" height="6" rx="3" fill="${m.accent}"/>
-        <circle cx="${-w*5}" cy="-20" r="6" fill="#222" stroke="#444"/>
-        <circle cx="${w*5}" cy="-20" r="6" fill="#222" stroke="#444"/>
-        <circle cx="${-w*5}" cy="20" r="7" fill="#222" stroke="#444"/>
-        <circle cx="${w*5}" cy="20" r="7" fill="#222" stroke="#444"/>
-        ${m.robot ? '<rect x="-10" y="-10" width="20" height="20" rx="6" fill="#1a2230"/>' : ''}
-        <circle cx="0" cy="-2" r="4" fill="${m.accent}"/>
-      </g>
-    </svg>`;
+  /* ---------------- shared mower artwork ----------------
+     One painter used for BOTH the in-game sprite and the garage
+     thumbnails, so they always match. Drawn top-down, facing -y
+     (up): rounded front cutting deck, centre powerplant that
+     varies by type, a rear hard-top grass box, big rear wheels
+     (or a striping roller), and a steel handlebar — the Hyundai
+     Power Products look: black body with yellow/lime accents.   */
+  function rr(c, x, y, w, h, r) {
+    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function paintMower(c, m, opts) {
+    opts = opts || {};
+    const wide = !!opts.wide, turbo = !!opts.turbo, t = opts.t || 0;
+    const robot = !!m.robot, rider = !!m.rider;
+    const cw = Math.max(2.3, m.cutWidth + (wide ? 2 : 0));
+    const bw = cw * CELL * 0.74;                                  // deck width
+    const bl = Math.min(CELL * 2.3, Math.max(CELL * 1.5, bw * 1.0)); // body length
+    const frontY = -bl * 0.54, deckH = bl * 0.72, backY = frontY + bl;
+    const accent = wide ? "#8fd14f" : m.accent;
+
+    const wheel = (wx, wy, rad) => {
+      c.fillStyle = "#0a0a0a"; rr(c, wx - rad, wy - rad * 1.5, rad * 2, rad * 3, rad); c.fill();
+      c.fillStyle = "#3c3c40"; c.beginPath(); c.arc(wx, wy, rad * 0.55, 0, 7); c.fill();
+      c.fillStyle = "#6a6a6e"; c.beginPath(); c.arc(wx, wy, rad * 0.22, 0, 7); c.fill();
+    };
+
+    // turbo aura
+    if (turbo) {
+      c.strokeStyle = "rgba(255,138,0," + (0.45 + 0.3 * Math.sin(t / 60)) + ")";
+      c.lineWidth = 3; rr(c, -bw / 2 - 4, frontY - 4, bw + 8, bl + 8, 13); c.stroke();
+    }
+
+    // ground shadow
+    c.fillStyle = "rgba(0,0,0,.28)";
+    rr(c, -bw / 2 + 3, frontY + 5, bw, bl, 13); c.fill();
+
+    // ---- running gear (under body) ----
+    if (!robot) {
+      if (m.stripe) {                                  // rear striping roller
+        c.fillStyle = "#1d1d1f"; rr(c, -bw * 0.5, backY - bl * 0.17, bw, bl * 0.14, bl * 0.06); c.fill();
+        c.fillStyle = "#3a3a3d"; rr(c, -bw * 0.5 + 3, backY - bl * 0.17 + 2, bw - 6, 3, 2); c.fill();
+      } else {                                         // big rear drive wheels
+        wheel(-bw * 0.5, backY - bl * 0.14, bl * 0.135);
+        wheel( bw * 0.5, backY - bl * 0.14, bl * 0.135);
+      }
+      wheel(-bw * 0.46, frontY + bl * 0.16, bl * 0.1); // small front wheels
+      wheel( bw * 0.46, frontY + bl * 0.16, bl * 0.1);
+    } else {
+      wheel(-bw * 0.42, 0, bl * 0.1);
+      wheel( bw * 0.42, 0, bl * 0.1);
+    }
+
+    // ---- rear hard-top grass box (not robot) ----
+    if (!robot) {
+      c.fillStyle = "#2b2b2e"; rr(c, -bw * 0.42, backY - bl * 0.36, bw * 0.84, bl * 0.32, 7); c.fill();
+      c.strokeStyle = "rgba(0,0,0,.5)"; c.lineWidth = 1; rr(c, -bw * 0.42, backY - bl * 0.36, bw * 0.84, bl * 0.32, 7); c.stroke();
+      c.fillStyle = "#3c3c40";                         // airflow vents on the box lid
+      for (let i = 0; i < 4; i++) { rr(c, -bw * 0.34 + i * bw * 0.2, backY - bl * 0.31, bw * 0.13, bl * 0.045, 2); c.fill(); }
+    }
+
+    // ---- cutting deck ----
+    c.fillStyle = m.color; rr(c, -bw / 2, frontY, bw, deckH, 13); c.fill();
+    c.fillStyle = "rgba(255,255,255,.05)"; rr(c, -bw / 2 + 3, frontY + 3, bw - 6, deckH * 0.4, 10); c.fill();
+    c.fillStyle = accent; rr(c, -bw / 2 + 5, frontY + 2, bw - 10, 5, 3); c.fill();   // front cutting mouth
+    c.strokeStyle = "rgba(0,0,0,.55)"; c.lineWidth = 1.5; rr(c, -bw / 2, frontY, bw, deckH, 13); c.stroke();
+
+    if (m.power === "petrol") {                          // 4-in-1 side-discharge chute
+      c.fillStyle = "#181818"; rr(c, bw / 2 - 2, frontY + deckH * 0.32, bl * 0.13, deckH * 0.24, 3); c.fill();
+    }
+
+    // ---- powerplant ----
+    const cy0 = frontY + deckH * 0.5;
+    if (m.power === "petrol") {
+      c.fillStyle = "#1c1c1c"; rr(c, -bw * 0.2, cy0 - bl * 0.17, bw * 0.4, bl * 0.34, 5); c.fill();
+      c.fillStyle = "#4a4a4e"; c.beginPath(); c.arc(0, cy0, bw * 0.12, 0, 7); c.fill();   // air filter / recoil
+      c.fillStyle = "#6a6a6e"; c.beginPath(); c.arc(0, cy0, bw * 0.06, 0, 7); c.fill();
+      c.fillStyle = "#555"; rr(c, -bw * 0.27, cy0 - bl * 0.03, bw * 0.07, bl * 0.07, 2); c.fill(); // exhaust
+    } else if (m.power === "battery") {
+      c.fillStyle = "#1c1c1c"; rr(c, -bw * 0.21, cy0 - bl * 0.16, bw * 0.42, bl * 0.32, 5); c.fill();
+      c.fillStyle = "#101012"; rr(c, -bw * 0.15, cy0 - bl * 0.11, bw * 0.3, bl * 0.22, 3); c.fill();
+      c.fillStyle = "#8fd14f"; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(-bw * 0.08 + i * bw * 0.08, cy0, 1.7, 0, 7); c.fill(); }
+    } else if (m.power === "corded") {
+      c.fillStyle = "#1c1c1c"; rr(c, -bw * 0.19, cy0 - bl * 0.15, bw * 0.38, bl * 0.3, 6); c.fill();
+      c.fillStyle = accent; for (let i = 0; i < 3; i++) { rr(c, -bw * 0.12, cy0 - bl * 0.075 + i * bl * 0.06, bw * 0.24, 2, 1); c.fill(); }
+      c.fillStyle = "#444"; rr(c, -bw * 0.04, backY - bl * 0.42, bw * 0.08, bl * 0.06, 2); c.fill(); // cable inlet
+    } else if (robot) {
+      c.fillStyle = "#11151c"; rr(c, -bw * 0.36, frontY + 2, bw * 0.72, deckH - 4, 14); c.fill();
+      c.fillStyle = accent; rr(c, -bw * 0.3, frontY + 3, bw * 0.6, 3, 2); c.fill();           // front bumper
+      c.fillStyle = "#0a0d12"; c.beginPath(); c.arc(0, cy0, bw * 0.15, 0, 7); c.fill();       // sensor dome
+      c.fillStyle = accent; c.beginPath(); c.arc(0, cy0, bw * 0.055, 0, 7); c.fill();
+    }
+
+    // ---- Hyundai badge ----
+    if (!robot) { c.fillStyle = m.accent; rr(c, -bw * 0.15, cy0 - 2.5, bw * 0.3, 5, 2); c.fill(); }
+
+    // ---- handlebar (walk-behind) ----
+    if (!robot && !rider) {
+      c.lineCap = "round";
+      c.strokeStyle = "#9a9a9e"; c.lineWidth = Math.max(2, bw * 0.03);
+      c.beginPath();
+      c.moveTo(-bw * 0.32, backY - bl * 0.1); c.lineTo(-bw * 0.22, backY + bl * 0.13);
+      c.lineTo( bw * 0.22, backY + bl * 0.13); c.lineTo( bw * 0.32, backY - bl * 0.1);
+      c.stroke();
+      c.strokeStyle = accent; c.lineWidth = Math.max(2, bw * 0.045);
+      c.beginPath(); c.moveTo(-bw * 0.22, backY + bl * 0.13); c.lineTo(bw * 0.22, backY + bl * 0.13); c.stroke();
+      c.lineCap = "butt";
+    }
+  }
+
+  // paint a mower into a garage thumbnail canvas, scaled to fit
+  function paintThumb(canvas, m) {
+    if (!canvas) return;
+    const c = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    c.clearRect(0, 0, W, H);
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#101113"); g.addColorStop(1, "#070708");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    const cw = Math.max(2.3, m.cutWidth);
+    const bw = cw * CELL * 0.74, bl = Math.min(CELL * 2.3, Math.max(CELL * 1.5, bw * 1.0));
+    const scale = Math.min(W * 0.74 / bw, H * 0.78 / (bl * 1.25));
+    c.save();
+    c.translate(W / 2, H / 2 - bl * scale * 0.08);
+    c.scale(scale, scale);
+    paintMower(c, m, {});
+    c.restore();
   }
 
   /* ============================================================
@@ -919,40 +1039,7 @@
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.angle + Math.PI / 2);
-
-    const wide = G.wideTimer > 0;
-    const bw = (m.cutWidth + (wide ? 2 : 0)) * CELL * 0.78;
-    const bl = CELL * 1.4;
-
-    ctx.fillStyle = "rgba(0,0,0,0.28)"; roundRect(-bw/2 + 3, -bl/2 + 5, bw, bl, 7); ctx.fill();
-
-    if (G.turboTimer > 0) {
-      ctx.strokeStyle = "rgba(255,138,0," + (0.4 + 0.3*Math.sin(performance.now()/60)) + ")";
-      ctx.lineWidth = 3; roundRect(-bw/2 - 3, -bl/2 - 3, bw + 6, bl + 6, 9); ctx.stroke();
-    }
-
-    ctx.fillStyle = wide ? "#8fd14f" : m.accent; roundRect(-bw/2, -bl/2, bw, 8, 4); ctx.fill();
-    ctx.fillStyle = m.color; roundRect(-bw/2 + 3, -bl/2 + 6, bw - 6, bl - 6, 6); ctx.fill();
-    ctx.strokeStyle = m.accent; ctx.lineWidth = 2; roundRect(-bw/2 + 3, -bl/2 + 6, bw - 6, bl - 6, 6); ctx.stroke();
-
-    ctx.fillStyle = "#2a2a2a"; roundRect(-bw*0.18, -bl*0.18, bw*0.36, bl*0.36, 4); ctx.fill();
-    ctx.fillStyle = m.accent; ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI*2); ctx.fill();
-
-    if (m.robot) {
-      ctx.fillStyle = "#1a2230"; roundRect(-bw*0.3, -bl*0.3, bw*0.6, bl*0.6, 6); ctx.fill();
-      ctx.fillStyle = m.accent; ctx.fillRect(-bw*0.2, -1, bw*0.4, 2);
-    } else if (m.rider) {
-      ctx.fillStyle = "#333"; roundRect(-bw*0.16, bl*0.18, bw*0.32, bl*0.28, 4); ctx.fill();
-    } else {
-      ctx.strokeStyle = "#888"; ctx.lineWidth = 3; ctx.beginPath();
-      ctx.moveTo(-bw*0.28, bl*0.5); ctx.lineTo(-bw*0.18, bl*0.78);
-      ctx.lineTo(bw*0.18, bl*0.78); ctx.lineTo(bw*0.28, bl*0.5); ctx.stroke();
-    }
-
-    ctx.fillStyle = "#111";
-    [[-bw/2+5,-bl/2+8],[bw/2-5,-bl/2+8],[-bw/2+6,bl/2-8],[bw/2-6,bl/2-8]].forEach(([wx,wy])=>{
-      roundRect(wx-4, wy-6, 8, 12, 3); ctx.fill();
-    });
+    paintMower(ctx, m, { wide: G.wideTimer > 0, turbo: G.turboTimer > 0, t: performance.now() });
     ctx.restore();
 
     const sp = Math.hypot(p.vx, p.vy);

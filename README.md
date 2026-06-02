@@ -69,6 +69,14 @@ are cheap and never run out — but planning your socket route is the puzzle.
 
 *Specs are real Hyundai Power Products figures, balanced into game stats.*
 
+Each machine is hand-drawn top-down to match its real-world look — the Hyundai
+black-and-yellow livery, a centre-mounted petrol engine (with air filter, side
+chute and exhaust), a battery pack with charge LEDs, a corded electric motor
+with a cable inlet, or the compact blue-accented robot — plus a rear hard-top
+grass box and a steel handlebar (or a rear striping roller on the roller
+models). The same artwork is used for the garage thumbnails and the in-game
+sprite so they always match.
+
 ## 🗺️ Career levels (8 gardens)
 
 *The Back Garden · Cottage Lawn · The Orchard · Manor Grounds · Riverside Park ·

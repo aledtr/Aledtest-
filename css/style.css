@@ -167,7 +167,8 @@ kbd {
 }
 .mower-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .mower-card.locked { opacity: .85; }
-.mower-thumb { height: 92px; border-radius: 10px; background: #000; position: relative; overflow:hidden; }
+.mower-thumb { border-radius: 10px; background: #000; position: relative; overflow:hidden; line-height:0; }
+.thumb-canvas { display:block; width:100%; height:auto; }
 .mower-name { font-weight: 800; font-size: 16px; }
 .mower-class { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
 .mower-desc { font-size: 12px; color: var(--muted); min-height: 32px; line-height:1.4; }
