@@ -57,6 +57,10 @@
     bump()    { this.blip(90, 0.16, "sawtooth", 0.30); },
     cut()     { /* soft snip, kept very quiet so it isn't spammy */ this.blip(1200 + Math.random()*250, 0.025, "square", 0.04); },
     refuel()  { this.blip(330, 0.1, "sine", 0.2); setTimeout(() => this.blip(520, 0.12, "sine", 0.2), 90); },
+    coin()    { this.blip(880, 0.05, "square", 0.18); setTimeout(() => this.blip(1320, 0.09, "square", 0.18), 55); },
+    power()   { [440,660,880,1100].forEach((f,i)=> setTimeout(()=>this.blip(f,0.07,"triangle",0.2), i*45)); },
+    star()    { this.blip(1047, 0.12, "triangle", 0.24); },
+    bark()    { this.blip(220, 0.08, "sawtooth", 0.22); setTimeout(()=>this.blip(180,0.1,"sawtooth",0.2), 90); },
     win()     { [523,659,784,1047].forEach((f,i)=> setTimeout(()=>this.blip(f,0.16,"triangle",0.26), i*120)); },
     lose()    { [440,392,330,247].forEach((f,i)=> setTimeout(()=>this.blip(f,0.2,"sawtooth",0.24), i*150)); },
 
